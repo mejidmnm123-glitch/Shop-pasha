@@ -84,7 +84,7 @@ textarea{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--
  <p class="mu" id="since"></p>
  <div class="card"><b data-i="daily"></b><div id="dlist"></div></div>
  <div class="card"><b data-i="recent"></b><div id="slist"></div></div>
- <div class="card"><div class="row" style="flex-wrap:wrap"><button id="bcsv" data-i="csv"></button><button id="bbak" data-i="bak"></button><button id="bres" data-i="res"></button></div>
+ <div class="card"><div class="row" style="flex-wrap:wrap"><button id="bcsv" data-i="csv"></button><button id="bbak" data-i="bak"></button><button id="bres" data-i="res"></button><button id="wipe" class="x" data-i="wipe"></button></div>
   <div class="f" style="margin:0"><label><small data-i="store"></small><input id="set-store"></label><label><small data-i="curr"></small><input id="set-cur"></label></div></div>
 </section>
 </main>
@@ -95,7 +95,7 @@ textarea{width:100%;background:var(--bg);color:var(--tx);border:1px solid var(--
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const L={
 cw_host:['This page is inside a frame that blocks the camera. Open the downloaded file in Chrome, or use the Photo button.','ئەم لاپەڕەیە لە ناو چوارچێوەیەکدایە کە کامێرا بلۆک دەکات. فایلە داگیراوەکە لە Chrome بکەرەوە، یان دوگمەی وێنە بەکاربهێنە.'],
-cw_http:['The camera needs a secure (HTTPS) page.','کامێرا پێویستی بە لاپەڕەی پارێزراو (HTTPS) هەیە.'],
+del:['Delete this sale','سڕینەوەی ئەم فرۆشتنە'],wipe:['Delete all sales','سڕینەوەی هەموو فرۆشتنەکان'],cw_http:['The camera needs a secure (HTTPS) page.','کامێرا پێویستی بە لاپەڕەی پارێزراو (HTTPS) هەیە.'],
 cw_denied:['Camera is blocked for this site. In Chrome tap the lock icon, then Permissions, Camera, Allow, and reload.','کامێرا بۆ ئەم ماڵپەڕە بلۆک کراوە. لە Chrome ئایکۆنی قفڵ ← Permissions ← Camera ← Allow، پاشان دووبارە بکەرەوە.'],
 cw_none:['No camera was found on this device.','هیچ کامێرایەک نەدۆزرایەوە.'],
 cw_busy:['Another app is using the camera. Close it and try again.','بەرنامەیەکی تر کامێرا بەکاردێنێت. دایبخە و دووبارە هەوڵ بدەوە.'],
@@ -123,7 +123,7 @@ let db=blank(),cart=[],sc=null,last='',lastT=0,cdb=null,cur='sell',per='t';
 try{const r=ls('cashier-v1');if(r)db=Object.assign(blank(),JSON.parse(r))}catch(e){}
 if(db.sales.length&&db.since>db.sales[0].t)db.since=db.sales[0].t;
 const saveL=()=>ls('cashier-v1',JSON.stringify(db));
-function push(){db.u=Date.now();saveL();if(cdb)cdb.doc('shop/main').set({products:db.products,store:db.store,cur:db.cur,since:db.since,u:db.u}).catch(()=>chip(false))}
+function push(){db.u=Date.now();saveL();if(cdb)cdb.doc('shop/main').set({products:db.products,store:db.store,cur:db.cur,since:db.since,del:db.del||[],u:db.u}).catch(()=>chip(false))}
 const n2=v=>(+v||0).toLocaleString('en-US',{maximumFractionDigits:2}),money=v=>n2(v)+' '+db.cur;
 const fr={.25:'¼',.5:'½',.75:'¾'},fq=(q,w)=>w?(fr[q]||n2(q))+' '+t('kg'):q;
 function toast(m){const e=$('#toast');e.textContent=m;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2600)}
@@ -193,11 +193,11 @@ $('#disc').oninput=$('#paid').oninput=rCart;
 $('#clr').onclick=()=>{cart=[];$('#disc').value=$('#paid').value='';rCart()};
 $('#pay').onclick=()=>{if(!cart.length)return toast(t('empty'));
  const x=tot(),pd=$('#paid').value===''?x:+$('#paid').value;if(pd<x)return toast(t('low'));
- const s={id:Date.now(),t:new Date().toISOString(),items:cart.map(c=>({n:c.n,p:c.p,c:c.c,q:c.q,w:c.w})),disc:+$('#disc').value||0,total:x,cost:cart.reduce((a,c)=>a+c.c*c.q,0),paid:pd};
+ const s={id:Date.now(),t:new Date().toISOString(),items:cart.map(c=>({id:c.id,n:c.n,p:c.p,c:c.c,q:c.q,w:c.w})),disc:+$('#disc').value||0,total:x,cost:cart.reduce((a,c)=>a+c.c*c.q,0),paid:pd};
  cart.forEach(c=>{const p=db.products.find(y=>y.id===c.id);if(p&&p.stock!==''&&p.stock!=null)p.stock=Math.max(0,+(p.stock-c.q).toFixed(3))});
  db.sales.push(s);push();if(cdb)cdb.collection('sales').doc(String(s.id)).set(s).catch(()=>{});
  cart=[];$('#disc').value=$('#paid').value='';rCart();rList();receipt(s)};
-function receipt(s){modal(`<div id="rcp"><h3 style="margin:0">${esc(db.store)}</h3><small>${new Date(s.t).toLocaleString()}</small><hr>${s.items.map(i=>`<div class="r"><span>${esc(i.n)} ×${fq(i.q,i.w)}</span><span>${money(i.p*i.q)}</span></div>`).join('')}<hr>${s.disc?`<div class="r"><span>${t('disc')}</span><span>−${money(s.disc)}</span></div>`:''}<div class="r"><b>${t('total')}</b><b>${money(s.total)}</b></div><div class="r"><span>${t('paid')}</span><span>${money(s.paid)}</span></div><div class="r"><span>${t('chg')}</span><span>${money(s.paid-s.total)}</span></div><p style="text-align:center">${t('thanks')}</p></div><div class="row" style="margin:12px 0 0"><button class="pri" onclick="window.print()">${t('print')}</button><button onclick="closeM()">${t('done')}</button></div>`)}
+function receipt(s,canDel){modal(`<div id="rcp"><h3 style="margin:0">${esc(db.store)}</h3><small>${new Date(s.t).toLocaleString()}</small><hr>${s.items.map(i=>`<div class="r"><span>${esc(i.n)} ×${fq(i.q,i.w)}</span><span>${money(i.p*i.q)}</span></div>`).join('')}<hr>${s.disc?`<div class="r"><span>${t('disc')}</span><span>−${money(s.disc)}</span></div>`:''}<div class="r"><b>${t('total')}</b><b>${money(s.total)}</b></div><div class="r"><span>${t('paid')}</span><span>${money(s.paid)}</span></div><div class="r"><span>${t('chg')}</span><span>${money(s.paid-s.total)}</span></div><p style="text-align:center">${t('thanks')}</p></div><div class="row" style="margin:12px 0 0"><button class="pri" onclick="window.print()">${t('print')}</button><button onclick="closeM()">${t('done')}</button>${canDel?`<button class="x" id="delS">${t('del')}</button>`:''}</div>`);if(canDel)$('#delS').onclick=function(){if(!this.dataset.s){this.dataset.s=1;this.textContent=t('sure');return}delSale(s.id);closeM()}}
 
 /* products */
 function plab(){const w=$('#pw').checked;$('#lc').textContent=t(w?'costkg':'cost');$('#lp').textContent=t(w?'pricekg':'price')}
@@ -224,7 +224,7 @@ function rSales(){document.querySelectorAll('#per button').forEach(b=>b.classLis
  $('#dlist').innerHTML=Object.entries(d).reverse().map(([k,o])=>`<div class="ln" style="grid-template-columns:1fr auto auto"><div>${k}<small>${o.n} ${t('cnt')}</small></div><div class="lt">${money(o.r)}</div><div class="lt" style="color:var(--ac)">${money(o.p)}</div></div>`).join('')||'<p class="mu">—</p>';
  $('#slist').innerHTML=l.slice(-40).reverse().map(s=>`<div class="ln" style="grid-template-columns:1fr auto auto"><div>${new Date(s.t).toLocaleString()}<small>${s.items.length} · ${t('profit')} ${money(s.total-(s.cost||0))}</small></div><div class="lt">${money(s.total)}</div><button data-id="${s.id}">${t('view')}</button></div>`).join('')||'<p class="mu">—</p>'}
 $('#per').onclick=e=>{const b=e.target.closest('button');if(b){per=b.dataset.k;rSales()}};
-$('#slist').onclick=e=>{const b=e.target.closest('button');if(b)receipt(db.sales.find(s=>s.id==b.dataset.id))};
+$('#slist').onclick=e=>{const b=e.target.closest('button');if(b)receipt(db.sales.find(s=>s.id==b.dataset.id),true)};
 async function saveFile(name,text){
  if(!window.claude){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=name;a.click();return}
  try{const d=await claude.use('downloads');if(d){await d.save({filename:name,data:text});return}}catch(e){if(e&&e.code==='declined')return}
@@ -237,6 +237,12 @@ $('#bbak').onclick=()=>saveFile('cashier-backup-'+day()+'.json',JSON.stringify(d
 $('#bres').onclick=()=>{modal(`<p>${t('paste')}</p><input type="file" id="rf" accept=".json" style="margin-bottom:8px"><textarea id="ta" rows="6"></textarea><div class="row" style="margin:10px 0 0"><button class="pri" id="dores">${t('res')}</button><button onclick="closeM()">${t('cancel')}</button></div>`);
  $('#rf').onchange=e=>{const f=e.target.files[0];if(f)f.text().then(x=>$('#ta').value=x)};
  $('#dores').onclick=()=>{try{const d=JSON.parse($('#ta').value);if(!Array.isArray(d.products))throw 0;db=Object.assign(blank(),d);push();closeM();refresh();toast(t('saved'))}catch(e){toast(t('inv'))}}};
+function undoStock(s){s.items.forEach(i=>{const p=db.products.find(y=>y.id===i.id)||db.products.find(y=>y.name===i.n);if(p&&p.stock!==''&&p.stock!=null)p.stock=+(p.stock+i.q).toFixed(3)})}
+function delSale(id){const s=db.sales.find(x=>x.id===id);if(!s)return;undoStock(s);db.sales=db.sales.filter(x=>x.id!==id);(db.del=db.del||[]).push(id);push();if(cdb)cdb.collection('sales').doc(String(id)).delete().catch(()=>{});refresh()}
+$('#wipe').onclick=function(){if(!this.dataset.s){this.dataset.s=1;this.textContent=t('sure');return}
+ const ids=db.sales.map(x=>x.id);db.sales.forEach(undoStock);db.del=(db.del||[]).concat(ids);db.sales=[];db.since=new Date().toISOString();push();
+ if(cdb)ids.forEach(id=>cdb.collection('sales').doc(String(id)).delete().catch(()=>{}));
+ this.dataset.s='';this.textContent=t('wipe');refresh()};
 $('#set-store').onchange=e=>{db.store=e.target.value.trim()||'My Shop';push();refresh()};
 $('#set-cur').onchange=e=>{db.cur=e.target.value.trim()||'IQD';push();refresh()};
 
@@ -244,11 +250,11 @@ $('#set-cur').onchange=e=>{db.cur=e.target.value.trim()||'IQD';push();refresh()}
 async function initSync(){try{if(!window.claude)return;cdb=await claude.use('db');if(!cdb)return;let first=true;
  cdb.doc('shop/main').onSnapshot(s=>{const d=s.exists?s.data():null;
   if(!d){if(db.products.length||db.sales.length)push()}
-  else if((d.u||0)>(db.u||0)){db.products=d.products||[];db.store=d.store||db.store;db.cur=d.cur||db.cur;if(d.since&&d.since<db.since)db.since=d.since;db.u=d.u;saveL();refresh()}
+  else if((d.u||0)>(db.u||0)){db.products=d.products||[];db.store=d.store||db.store;db.cur=d.cur||db.cur;db.since=d.since||db.since;db.del=[...new Set([...(db.del||[]),...(d.del||[])])];db.sales=db.sales.filter(x=>!db.del.includes(x.id));db.u=d.u;saveL();refresh()}
   else if(first&&(d.u||0)<(db.u||0))push();
   first=false;chip(true)},()=>chip(false));
  cdb.collection('sales').onSnapshot(s=>{const have=new Set(db.sales.map(x=>x.id)),rem=new Set();let ch=false;
-  s.docs.forEach(x=>{const v=x.data();rem.add(v.id);if(!have.has(v.id)){db.sales.push(v);ch=true}});
+  s.docs.forEach(x=>{const v=x.data();rem.add(v.id);if(!have.has(v.id)&&!(db.del||[]).includes(v.id)){db.sales.push(v);ch=true}});
   db.sales.forEach(x=>{if(!rem.has(x.id))cdb.collection('sales').doc(String(x.id)).set(x).catch(()=>{})});
   if(ch){db.sales.sort((a,b)=>a.id-b.id);saveL();refresh()}},()=>{});
 }catch(e){}}
