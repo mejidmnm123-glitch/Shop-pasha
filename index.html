@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Cashier</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#0f766e"><link rel="icon" href="icon-192.png">
 <style>
 :root{--bg:#f4f6f8;--card:#fff;--tx:#1b1f24;--mu:#6b7280;--ac:#0f766e;--on:#fff;--bd:#e1e5ea;--rd:#dc2626;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101317;--card:#1a1f26;--tx:#eceff3;--mu:#9aa3af;--ac:#2dd4bf;--on:#06201c;--bd:#2b323c;--rd:#f87171;color-scheme:dark}}
@@ -46,8 +47,9 @@ select{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-ra
 #lowbar{background:#f59e0b22;border:1px solid #f59e0b;border-radius:10px;padding:8px 10px;margin-bottom:10px;font-size:13.5px}
 #lblSheet{display:none}.lb{border:1px dashed #999;padding:4px;text-align:center;font-size:11px;break-inside:avoid}.lb svg{max-width:100%}
 @media print{#lblSheet.show{display:grid;grid-template-columns:repeat(3,1fr);gap:6mm;position:absolute;left:0;top:0;width:100%;background:#fff;color:#000}#lblSheet.show,#lblSheet.show *{visibility:visible}}
+#pcard{position:fixed;top:calc(70px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);background:var(--ac);color:var(--on);padding:14px 22px;border-radius:16px;z-index:25;text-align:center;font-size:18px;min-width:240px;box-shadow:0 6px 24px #0006}
 </style></head><body>
-<header><b id="sn">Cashier</b><span class="chip" id="sync"></span><button id="lang">کوردی</button>
+<header><b id="sn">Cashier</b><span class="chip" id="sync"></span><button id="inst" hidden data-i="inst"></button><button id="linkBtn">🔗</button><button id="lang">کوردی</button>
 <nav><button data-v="sell" data-i="sell" class="on"></button><button data-v="prod" data-i="prods"></button><button data-v="debts" data-i="debts"></button><button data-v="cash" data-i="cash"></button><button data-v="sales" data-i="recs"></button></nav></header>
 <main>
 <div id="cam" class="card" hidden><div id="reader"></div><button id="camStop" data-i="stop"></button></div>
@@ -55,7 +57,7 @@ select{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-ra
 <section id="v-sell" class="grid">
  <div>
   <div class="row"><input id="q" data-p="search" autocomplete="off"><button id="scanBtn" class="pri" data-i="scan"></button><button id="photoBtn" data-i="photo"></button><input type="file" id="pf" accept="image/*" capture="environment" hidden></div>
-  <div id="lowbar" hidden></div><div id="list" class="plist"></div>
+  <div class="row" style="flex-wrap:wrap"><button id="nfcBtn" data-i="nfcb"></button><button id="itm" data-i="item"></button></div><div id="chips" class="per"></div><div id="lowbar" hidden></div><div id="list" class="plist"></div>
  </div>
  <div class="card">
   <div id="lines"></div>
@@ -71,14 +73,14 @@ select{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-ra
  <div class="card">
   <input id="pid" type="hidden">
   <div class="f">
-   <label class="w"><small data-i="code"></small><div class="row" style="margin:0"><input id="pc"><button id="pscan">📷</button><button id="pphoto">🖼</button></div></label>
+   <label class="w"><small data-i="code"></small><div class="row" style="margin:0"><input id="pc"><button id="pscan">📷</button><button id="pphoto">🖼</button><button id="pnfc">📡</button></div></label>
    <label class="w"><small data-i="name"></small><input id="pn"></label>
    <label><small id="lc"></small><input id="pk" type="number" inputmode="decimal" min="0"></label>
    <label><small id="lp"></small><input id="pp" type="number" inputmode="decimal" min="0"></label>
    <label><small data-i="stock"></small><input id="ps" type="number" inputmode="decimal" min="0"></label>
-   <label><small data-i="minst"></small><input id="pm" type="number" inputmode="decimal" min="0"></label><label style="grid-column:1/-1;display:flex;align-items:end;gap:8px;padding-bottom:10px"><input type="checkbox" id="pw"><span data-i="byw"></span></label>
+   <label><small data-i="minst"></small><input id="pm" type="number" inputmode="decimal" min="0"></label><label><small data-i="cnl"></small><input id="pcn" type="number" inputmode="numeric" min="1"></label><label><small data-i="cat"></small><select id="pcat"></select></label><label style="grid-column:1/-1;display:flex;align-items:end;gap:8px;padding-bottom:10px"><input type="checkbox" id="pw"><span data-i="byw"></span></label>
   </div>
-  <div class="row" style="margin:0"><button id="psave" class="pri" style="flex:1" data-i="save"></button><button id="pclr">✕</button><button id="lbl" data-i="labels"></button></div>
+  <div class="row" style="margin:0"><button id="psave" class="pri" style="flex:1" data-i="save"></button><button id="pclr">✕</button><button id="lbl" data-i="labels"></button><button id="acat" data-i="addcat"></button></div>
  </div>
  <div class="card" id="plist"></div>
 </section>
@@ -103,23 +105,33 @@ select{background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-ra
 </section>
 
 <section id="v-sales" hidden>
- <div class="per" id="per"><button data-k="t" data-i="today"></button><button data-k="w" data-i="week"></button><button data-k="m" data-i="month"></button><button data-k="a" data-i="all"></button></div>
+ <div class="per" id="per"><button data-k="t" data-i="today"></button><button data-k="w" data-i="week"></button><button data-k="m" data-i="month"></button><button data-k="p" data-i="pmonth"></button><button data-k="a" data-i="all"></button></div>
  <div class="stats" id="stats"></div>
  <p class="mu" id="since"></p>
- <div class="card"><b data-i="daily"></b><div id="dlist"></div></div>
+ <div class="card"><b data-i="daily"></b><div class="per" id="gb" style="margin:8px 0"><button data-k="d" data-i="gday"></button><button data-k="w" data-i="gweek"></button><button data-k="m" data-i="gmonth"></button></div><div id="dlist"></div></div>
  <div class="card"><b data-i="recent"></b><div id="slist"></div></div>
- <div class="card"><div class="row" style="flex-wrap:wrap"><button id="bcsv" data-i="csv"></button><button id="bbak" data-i="bak"></button><button id="bres" data-i="res"></button><button id="wipe" class="x" data-i="wipe"></button></div>
+ <div class="card"><b data-i="bkt"></b><p class="mu" id="bkst"></p><div class="row" style="flex-wrap:wrap;margin:0"><button id="bkn" data-i="bkn"></button><button id="bks" data-i="bks"></button><button id="bkf" data-i="bkf"></button><button id="bkr" data-i="bkr"></button></div></div>
+<div class="card"><div class="row" style="flex-wrap:wrap"><button id="bcsv" data-i="csv"></button><button id="bbak" data-i="bak"></button><button id="bres" data-i="res"></button><button id="wipe" class="x" data-i="wipe"></button></div>
   <div class="f" style="margin:0"><label><small data-i="store"></small><input id="set-store"></label><label><small data-i="curr"></small><input id="set-cur"></label><label class="w"><small data-i="pin"></small><input id="set-pin" type="password" inputmode="numeric" maxlength="8"></label></div></div>
 </section>
 </main>
-<div id="lblSheet"></div><div id="md" class="modal" hidden><div class="mbox" id="mb"></div></div>
+<div id="pcard" hidden></div><div id="lblSheet"></div><div id="md" class="modal" hidden><div class="mbox" id="mb"></div></div>
 <div id="toast" hidden></div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.4.7/peerjs.min.js"></script>
 <script>
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const L={
 cw_host:['This page is inside a frame that blocks the camera. Open the downloaded file in Chrome, or use the Photo button.','ئەم لاپەڕەیە لە ناو چوارچێوەیەکدایە کە کامێرا بلۆک دەکات. فایلە داگیراوەکە لە Chrome بکەرەوە، یان دوگمەی وێنە بەکاربهێنە.'],
+inst:['Install app','دامەزراندنی ئەپ'],linkt:['Link devices','بەستنەوەی ئامێرەکان'],mk:['Create a code (this is the main device)','دروستکردنی کۆد (ئەمە ئامێری سەرەکییە)'],jn:['Join with a code','بەستنەوە بە کۆد'],unlink:['Unlink','پچڕاندن'],linked:['Linked','بەستراوە'],waitp:['Waiting for the other device…','چاوەڕێی ئامێری تر…'],
+fwd:['Use this device as a scanner for the other one','ئەم ئامێرە وەک سکانەر بۆ ئەوی تر بەکاربهێنە'],radd:['Add scanned items to this cart','کاڵای سکانکراو بخە سەبەتەی ئەم ئامێرە'],linkna:['Linking is not available on this page','بەستنەوە لەم لاپەڕەیە بەردەست نییە'],unk:['Unknown item','کاڵای نەناسراو'],
+nfcb:['📡 NFC','📡 NFC'],nonfc:['NFC is not available on this device or browser','NFC لەم ئامێرە یان وێبگەڕە بەردەست نییە'],nfcon:['NFC on – bring a tag close','NFC چالاکە – تاگەکە نزیک بکەرەوە'],nfcfail:['NFC could not start. Turn NFC on in phone settings.','NFC دەستی پێنەکرد. NFC لە ڕێکخستنەکانی مۆبایل چالاک بکە.'],
+found:['Name found – now enter the price','ناو دۆزرایەوە – ئێستا نرخ بنووسە'],item:['＋ Item','＋ کاڵا'],itemt:['One-off item (no product needed)','کاڵای تاک (پێویست بە تۆمارکردن نییە)'],iname:['Name (optional)','ناو (ئارەزوومەندانە)'],qty:['Quantity','ژمارە'],item1:['Item','کاڵا'],
+cat:['Category','پۆل'],cnl:['Pieces per carton (optional)','ژمارەی دانە لە کارتۆنێکدا'],ctn:['ctn','کارتۆن'],ctnin:['Cartons received','کارتۆنی گەیشتوو'],ctncost:['Cost per carton','نرخی کڕینی کارتۆنێک'],allc:['All','هەموو'],addcat:['+ Category','+ پۆل'],catn:['Category name','ناوی پۆل'],
+c_cig:['Cigarettes','جگەرە'],c_hookah:['Hookah products','پێداویستی نێرگەلە'],c_drink:['Drinks','خواردنەوە'],c_snack:['Snacks','خواردەمەنی سووک'],c_other:['Other','تر'],
+bkt:['Backups','پاشەکەوتکردن'],bkn:['Backup now','ئێستا پاشەکەوت بکە'],bks:['Send backup (Gmail, Drive…)','ناردنی پاشەکەوت (Gmail، Drive…)'],bkf:['Auto-save folder (laptop)','فۆڵدەری پاشەکەوتی خۆکار (لاپتۆپ)'],bkr:['Restore from automatic backup','گەڕاندنەوە لە پاشەکەوتی خۆکار'],bklast:['Last automatic backup','دواین پاشەکەوتی خۆکار'],bkfold:['folder on','فۆڵدەر چالاکە'],bkna:['Folder backup is not supported on this device','پاشەکەوت بۆ فۆڵدەر لەم ئامێرە پشتگیری ناکرێت'],
+gday:['Daily','ڕۆژانە'],gweek:['Weekly','هەفتانە'],gmonth:['Monthly','مانگانە'],pmonth:['Last month','مانگی پێشوو'],
 debts:['Debts','قەرزەکان'],cash:['Cash','قاسە'],cred:['On credit','بە قەرز'],cust:['Customer name','ناوی کڕیار'],dnote:['Note (optional)','تێبینی (ئارەزوومەندانە)'],adddebt:['Add debt','زیادکردنی قەرز'],owed:['Total owed','کۆی قەرزەکان'],rem:['Remaining','ماوە'],dpay:['Pay','پارەدان'],amt:['Amount','بڕ'],settled:['Paid','پێدراوەتەوە'],
 exp:['Expenses','خەرجی'],ecat:['Category','جۆر'],rent:['Rent','کرێ'],elec:['Electricity','کارەبا'],wage:['Wages','مووچە'],other:['Other','تر'],addexp:['Add expense','زیادکردنی خەرجی'],net:['Net profit','قازانجی پاک'],
 dayclose:['Daily cash closing','داخستنی ڕۆژانەی قاسە'],opencash:['Opening cash','پارەی سەرەتای قاسە'],cashsales:['Cash sales','فرۆشتنی کاش'],debtin:['Debt payments received','قەرزی وەرگیراو'],expected:['Expected in drawer','پێویستە لە قاسە هەبێت'],counted:['Counted cash','پارەی ژمێردراو'],diff:['Difference','جیاوازی'],closeday:['Close the day','داخستنی ڕۆژ'],history:['Previous closings','داخستنەکانی پێشوو'],
@@ -140,9 +152,9 @@ code:['Barcode','بارکۆد'],name:['Product name','ناوی کاڵا'],cost:[
 costkg:['Cost price per kg','نرخی کڕین بۆ کیلۆیەک'],pricekg:['Selling price per kg','نرخی فرۆشتن بۆ کیلۆیەک'],stock:['Stock (optional)','بڕی ماوە (ئارەزوومەندانە)'],
 byw:['Sold by weight (kg)','بە کێش دەفرۆشرێت (کیلۆ)'],save:['Save product','پاشەکەوتکردنی کاڵا'],edit:['Edit','دەستکاری'],sure:['Sure?','دڵنیایت؟'],
 print:['🖨 Print','🖨 چاپکردن'],done:['Done','تەواو'],today:['Today','ئەمڕۆ'],week:['7 days','٧ ڕۆژ'],month:['This month','ئەم مانگە'],all:['All time','هەموو کات'],
-rev:['Sales','فرۆشتن'],cst:['Cost','تێچوو'],profit:['Profit','قازانج'],cnt:['sales','فرۆشتن'],csv:['Export CSV','هەناردەی CSV'],bak:['Backup','پاشەکەوت'],res:['Restore','گەڕاندنەوە'],
+rev:['Sales','فرۆشتن'],cst:['Cost price of goods sold','نرخی کڕینی کاڵای فرۆشراو'],profit:['Profit','قازانج'],cnt:['sales','فرۆشتن'],csv:['Export CSV','هەناردەی CSV'],bak:['Backup','پاشەکەوت'],res:['Restore','گەڕاندنەوە'],
 store:['Shop name','ناوی دووکان'],curr:['Currency','دراو'],since:['Records since','تۆمارکردن لە'],synced:['Synced','هاوکاتکراو'],local:['This device only','تەنیا ئەم ئامێرە'],
-kg:['kg','کگ'],custom:['Other weight (kg)','کێشی تر (کگ)'],daily:['Daily summary','کورتەی ڕۆژانە'],recent:['Recent sales','فرۆشتنە دوایینەکان'],view:['View','بینین'],
+kg:['kg','کگ'],custom:['Other weight (kg)','کێشی تر (کگ)'],daily:['Profit summary','کورتەی قازانج'],recent:['Recent sales','فرۆشتنە دوایینەکان'],view:['View','بینین'],
 np:['Name and selling price are required','ناو و نرخی فرۆشتن پێویستە'],saved:['Saved','پاشەکەوت کرا'],newc:['New barcode – add the product','بارکۆدی نوێ – کاڵاکە زیاد بکە'],
 low:['Cash received is less than total','پارەی وەرگیراو کەمترە لە کۆی گشتی'],camf:['Camera unavailable: ','کامێرا بەردەست نییە: '],stop:['Stop camera','وەستاندنی کامێرا'],
 left:['left','ماوە'],notr:['stock not tracked','بڕ تۆمار ناکرێت'],nocode:['no barcode','بێ بارکۆد'],paste:['Choose or paste a backup (replaces current data):','باکئەپ هەڵبژێرە یان دابنێ (داتای ئێستا دەگۆڕێت):'],
@@ -150,18 +162,21 @@ inv:['Invalid backup','باکئەپەکە هەڵەیە'],copy:['Copy','کۆپی'
 const ls=(k,v)=>{try{return v===undefined?localStorage.getItem(k):localStorage.setItem(k,v)}catch(e){}};
 let lang=ls('cashier-lang')||'en';const t=k=>L[k][lang==='ku'?1:0];
 const blank=()=>({cur:'IQD',store:'My Shop',products:[],sales:[],since:new Date().toISOString(),debts:[],exp:[],closes:[],u:0});
-let db=blank(),cart=[],sc=null,last='',lastT=0,cdb=null,cur='sell',per='t';
+let db=blank(),cart=[],sc=null,last='',lastT=0,cdb=null,cur='sell',per='t',gb='d',selCat='',conn=null,peer=null,pairCode=ls('cashier-pair')||'',role=+(ls('cashier-role')||0),ip=null,nfcAbort=null,bkLast=0,bkFolder=null;
+const cats=()=>db.cats||(db.cats=['c_cig','c_hookah','c_drink','c_snack','c_other']),catName=c=>L[c]?t(c):c;
+const lite=()=>({products:db.products,store:db.store,cur:db.cur,since:db.since,del:db.del||[],debts:db.debts||[],exp:db.exp||[],closes:db.closes||[],cats:cats(),u:db.u});
+function peerSend(m){try{if(conn&&conn.open)conn.send(m)}catch(e){}}
 try{const r=ls('cashier-v1');if(r)db=Object.assign(blank(),JSON.parse(r))}catch(e){}
 if(db.sales.length&&db.since>db.sales[0].t)db.since=db.sales[0].t;
 const saveL=()=>ls('cashier-v1',JSON.stringify(db));
-function push(){db.u=Date.now();saveL();if(cdb)cdb.doc('shop/main').set({products:db.products,store:db.store,cur:db.cur,since:db.since,del:db.del||[],debts:db.debts||[],exp:db.exp||[],closes:db.closes||[],u:db.u}).catch(()=>chip(false))}
+function push(){db.u=Date.now();saveL();peerSend({k:'meta',db:lite()});if(cdb)cdb.doc('shop/main').set({products:db.products,store:db.store,cur:db.cur,since:db.since,del:db.del||[],debts:db.debts||[],exp:db.exp||[],closes:db.closes||[],cats:cats(),u:db.u}).catch(()=>chip(false))}
 const n2=v=>(+v||0).toLocaleString('en-US',{maximumFractionDigits:2}),money=v=>n2(v)+' '+db.cur;
 const fr={.25:'¼',.5:'½',.75:'¾'},fq=(q,w)=>w?(fr[q]||n2(q))+' '+t('kg'):q;
 function toast(m){const e=$('#toast');e.textContent=m;e.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>e.hidden=true,2600)}
 function beep(){try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=880;o.start();setTimeout(()=>{o.stop();a.close()},90)}catch(e){}}
 const modal=h=>{$('#mb').innerHTML=h;$('#md').hidden=false},closeM=()=>$('#md').hidden=true;
 $('#md').onclick=e=>{if(e.target.id==='md')closeM()};
-function chip(ok){$('#sync').textContent=ok?'● '+t('synced'):'○ '+t('local')}
+function chip(){const lk=conn&&conn.open;$('#sync').textContent=(lk||cdb?'● ':'○ ')+t(lk?'linked':cdb?'synced':'local')}
 
 /* language */
 function applyLang(){const k=lang==='ku';document.documentElement.dir=k?'rtl':'ltr';document.documentElement.lang=k?'ckb':'en';
@@ -186,8 +201,8 @@ $('#camStop').onclick=stopScan;
 let photoCb=null;
 function photo(cb){photoCb=cb;$('#pf').value='';$('#pf').click()}
 $('#pf').onchange=async e=>{const f=e.target.files[0];if(!f||!photoCb)return;try{const h=new Html5Qrcode('reader');const code=await h.scanFile(f,false);try{h.clear()}catch(_){}beep();photoCb(code)}catch(err){toast(t('nobar'))}};
-$('#photoBtn').onclick=()=>photo(code=>{const p=db.products.find(p=>p.code===code);if(p)pick(p);else unknown(code)});
-$('#pphoto').onclick=()=>photo(c=>{$('#pc').value=c;$('#pn').focus()});
+$('#photoBtn').onclick=()=>photo(gotCode);
+$('#pphoto').onclick=()=>photo(fillCode);
 
 /* nav */
 let unl=false;const pin=()=>ls('cashier-pin')||'';
@@ -198,15 +213,17 @@ function view(v){if(v==='sell')unl=false;if(['prod','cash','sales'].includes(v)&
  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));stopScan();refresh()}
 document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>view(b.dataset.v));
 function refresh(){$('#sn').textContent=db.store;document.title=db.store;$('#set-store').value=db.store;$('#set-cur').value=db.cur;$('#set-pin').value=pin();
- if(cur==='sell'){rList();rCart()}if(cur==='prod')rProd();if(cur==='debts')rDebts();if(cur==='cash')rCash();if(cur==='sales')rSales()}
+ if(cur==='sell'){rList();rCart()}if(cur==='prod'){fillCats();rProd()}if(cur==='debts')rDebts();if(cur==='cash')rCash();if(cur==='sales')rSales()}
 
 /* sell */
 const unitTxt=p=>money(p.price)+(p.w?' / '+t('kg'):'');
-const stTxt=p=>p.stock===''||p.stock==null?'':' · '+n2(p.stock)+(p.w?' '+t('kg'):'')+' '+t('left');
+const stTxt=p=>p.stock===''||p.stock==null?'':' · '+n2(p.stock)+(p.w?' '+t('kg'):'')+(p.cn>1&&!p.w?' ('+Math.floor(p.stock/p.cn)+' '+t('ctn')+' + '+n2(p.stock%p.cn)+')':'')+' '+t('left');
 const lowL=()=>db.products.filter(p=>p.stock!==''&&p.stock!=null&&+p.stock<=(p.min||0));
 function rLow(){const l=lowL(),e=$('#lowbar');e.hidden=!l.length;e.innerHTML=l.length?'⚠ '+t('lowwarn')+': '+l.map(p=>esc(p.name)+' ('+n2(p.stock)+(p.w?' '+t('kg'):'')+')').join(' · '):''}
-function rList(){rLow();const q=$('#q').value.trim().toLowerCase();
- const l=db.products.filter(p=>!q||p.name.toLowerCase().includes(q)||p.code.includes(q)).slice(0,60);
+function rChips(){const u=cats().filter(c=>db.products.some(p=>p.cat===c));if(selCat&&!u.includes(selCat))selCat='';
+ $('#chips').hidden=!u.length;$('#chips').innerHTML=u.length?[['',t('allc')],...u.map(c=>[c,catName(c)])].map(([k,n])=>`<button data-c="${esc(k)}" class="${selCat===k?'on':''}">${esc(n)}</button>`).join(''):''}
+function rList(){rLow();rChips();const q=$('#q').value.trim().toLowerCase();
+ const l=db.products.filter(p=>(!selCat||p.cat===selCat)&&(!q||p.name.toLowerCase().includes(q)||p.code.includes(q))).slice(0,60);
  $('#list').innerHTML=l.length?l.map(p=>`<button class="pb" data-id="${p.id}"><span>${esc(p.name)}</span><small>${unitTxt(p)}${stTxt(p)}</small></button>`).join(''):`<p class="mu">${t('nop')}</p>`}
 $('#list').onclick=e=>{const b=e.target.closest('.pb');if(b)pick(db.products.find(p=>p.id==b.dataset.id))};
 $('#q').oninput=rList;
@@ -214,8 +231,8 @@ $('#q').onkeydown=e=>{if(e.key!=='Enter')return;const v=$('#q').value.trim();if(
  const p=db.products.find(p=>p.code===v);if(p){pick(p);$('#q').value='';rList();return}
  const m=db.products.filter(p=>p.name.toLowerCase().includes(v.toLowerCase()));
  if(m.length===1){pick(m[0]);$('#q').value='';rList()}else if(!m.length)unknown(v)};
-$('#scanBtn').onclick=()=>startScan(code=>{const p=db.products.find(p=>p.code===code);if(p)pick(p);else unknown(code)});
-function unknown(code){view('prod');$('#pc').value=code;$('#pn').focus();toast(t('newc'))}
+$('#scanBtn').onclick=()=>startScan(gotCode);
+function unknown(code){view('prod');fillCode(code);toast(t('newc'))}
 function pick(p){if(!p)return;if(!p.w)return add(p,1);
  modal(`<h3 style="margin:0">${esc(p.name)}</h3><small>${unitTxt(p)}</small><div class="wg">${[.25,.5,1].map(k=>`<button class="pri" data-k="${k}">${fq(k,1)}<small style="color:inherit">${money(p.price*k)}</small></button>`).join('')}</div><div class="row"><input id="wk" type="number" step="0.05" min="0" inputmode="decimal" placeholder="${t('custom')}"><button id="wadd">OK</button></div>`);
  $('#mb').onclick=e=>{const b=e.target.closest('[data-k]');if(b){add(p,+b.dataset.k);closeM()}else if(e.target.id==='wadd'){const k=parseFloat($('#wk').value);if(k>0){add(p,k);closeM()}}}}
@@ -232,7 +249,7 @@ function checkout(credit,cust){if(!cart.length)return toast(t('empty'));
  const x=tot(),pd=credit?0:($('#paid').value===''?x:+$('#paid').value);if(pd<x&&!credit)return toast(t('low'));
  const s={id:Date.now(),t:new Date().toISOString(),items:cart.map(c=>({id:c.id,n:c.n,p:c.p,c:c.c,q:c.q,w:c.w})),disc:+$('#disc').value||0,total:x,cost:cart.reduce((a,c)=>a+c.c*c.q,0),paid:pd,cust:credit?cust:''};
  cart.forEach(c=>{const p=db.products.find(y=>y.id===c.id);if(p&&p.stock!==''&&p.stock!=null)p.stock=Math.max(0,+(p.stock-c.q).toFixed(3))});
- if(credit)(db.debts=db.debts||[]).push({id:s.id,name:cust,amt:x,t:s.t,note:'',pays:[]});db.sales.push(s);push();if(cdb)cdb.collection('sales').doc(String(s.id)).set(s).catch(()=>{});
+ if(credit)(db.debts=db.debts||[]).push({id:s.id,name:cust,amt:x,t:s.t,note:'',pays:[]});db.sales.push(s);push();peerSend({k:'sale',s});if(cdb)cdb.collection('sales').doc(String(s.id)).set(s).catch(()=>{});
  cart=[];$('#disc').value=$('#paid').value='';rCart();rList();receipt(s)}
 $('#pay').onclick=()=>checkout(false);
 function receipt(s,canDel){modal(`<div id="rcp"><h3 style="margin:0">${esc(db.store)}</h3><small>${new Date(s.t).toLocaleString()}</small><hr>${s.items.map(i=>`<div class="r"><span>${esc(i.n)} ×${fq(i.q,i.w)}</span><span>${money(i.p*i.q)}</span></div>`).join('')}<hr>${s.disc?`<div class="r"><span>${t('disc')}</span><span>−${money(s.disc)}</span></div>`:''}<div class="r"><b>${t('total')}</b><b>${money(s.total)}</b></div><div class="r"><span>${t('paid')}</span><span>${money(s.paid)}</span></div>${s.cust?`<div class="r"><span>${t('cred')}</span><span>${esc(s.cust)}</span></div>`:`<div class="r"><span>${t('chg')}</span><span>${money(s.paid-s.total)}</span></div>`}<p style="text-align:center">${t('thanks')}</p></div><div class="row" style="margin:12px 0 0"><button class="pri" onclick="window.print()">${t('print')}</button><button onclick="closeM()">${t('done')}</button>${canDel?`<button class="x" id="delS">${t('del')}</button>`:''}</div>`);if(canDel)$('#delS').onclick=function(){if(!this.dataset.s){this.dataset.s=1;this.textContent=t('sure');return}delSale(s.id);closeM()}}
@@ -241,26 +258,29 @@ function receipt(s,canDel){modal(`<div id="rcp"><h3 style="margin:0">${esc(db.st
 function plab(){const w=$('#pw').checked;$('#lc').textContent=t(w?'costkg':'cost');$('#lp').textContent=t(w?'pricekg':'price')}
 $('#pw').onchange=plab;
 function rProd(){$('#plist').innerHTML=db.products.map(p=>{const m=p.price>0&&p.cost>0?' · '+t('margin')+' '+Math.round((p.price-p.cost)/p.price*100)+'%':'';
- return `<div class="ln"><div>${esc(p.name)}<small>${esc(p.code)||t('nocode')} · ${t('cost')} ${n2(p.cost)} → ${unitTxt(p)}${m}</small><small>${stTxt(p).slice(3)||t('notr')}</small></div><button data-a="s" data-id="${p.id}">${t('restock')}</button><button data-a="e" data-id="${p.id}">${t('edit')}</button><button class="x" data-a="r" data-id="${p.id}">✕</button></div>`}).join('')||`<p class="mu">${t('nop')}</p>`}
+ return `<div class="ln"><div>${esc(p.name)}<small>${p.cat?esc(catName(p.cat))+' · ':''}${esc(p.code)||t('nocode')} · ${t('cost')} ${n2(p.cost)} → ${unitTxt(p)}${m}</small><small>${stTxt(p).slice(3)||t('notr')}</small></div><button data-a="s" data-id="${p.id}">${t('restock')}</button><button data-a="e" data-id="${p.id}">${t('edit')}</button><button class="x" data-a="r" data-id="${p.id}">✕</button></div>`}).join('')||`<p class="mu">${t('nop')}</p>`}
 $('#plist').onclick=e=>{const b=e.target.closest('button');if(!b)return;const p=db.products.find(x=>x.id==b.dataset.id);if(!p)return;
  if(b.dataset.a==='s')return restock(p);
- if(b.dataset.a==='e'){$('#pid').value=p.id;$('#pc').value=p.code;$('#pn').value=p.name;$('#pk').value=p.cost||'';$('#pp').value=p.price;$('#ps').value=p.stock;$('#pm').value=p.min||'';$('#pw').checked=!!p.w;plab();scrollTo(0,0)}
+ if(b.dataset.a==='e'){$('#pid').value=p.id;$('#pc').value=p.code;$('#pn').value=p.name;$('#pk').value=p.cost||'';$('#pp').value=p.price;$('#ps').value=p.stock;$('#pm').value=p.min||'';$('#pcn').value=p.cn||'';fillCats();$('#pcat').value=p.cat||'';$('#pw').checked=!!p.w;plab();scrollTo(0,0)}
  else if(b.dataset.sure){db.products=db.products.filter(x=>x!==p);push();rProd()}else{b.dataset.sure=1;b.textContent=t('sure')}};
-$('#pscan').onclick=()=>startScan(c=>{$('#pc').value=c;$('#pn').focus()},true);
-const pclr=()=>{['#pid','#pc','#pn','#pk','#pp','#ps','#pm'].forEach(s=>$(s).value='');$('#pw').checked=false;plab()};$('#pclr').onclick=pclr;
+$('#pscan').onclick=()=>startScan(fillCode,true);
+const pclr=()=>{['#pid','#pc','#pn','#pk','#pp','#ps','#pm','#pcn'].forEach(s=>$(s).value='');$('#pw').checked=false;$('#pcat').value='';plab()};$('#pclr').onclick=pclr;
 $('#psave').onclick=()=>{const n=$('#pn').value.trim(),price=parseFloat($('#pp').value);if(!n||isNaN(price))return toast(t('np'));
  const code=$('#pc').value.trim(),st=$('#ps').value.trim();
  let p=db.products.find(x=>x.id==$('#pid').value)||(code&&db.products.find(x=>x.code===code));if(!p){p={id:Date.now()};db.products.push(p)}
- Object.assign(p,{code,name:n,price,cost:parseFloat($('#pk').value)||0,w:$('#pw').checked,min:parseFloat($('#pm').value)||0,stock:st===''?'':+st});push();pclr();rProd();toast(t('saved'))};
+ Object.assign(p,{code,name:n,price,cost:parseFloat($('#pk').value)||0,w:$('#pw').checked,min:parseFloat($('#pm').value)||0,cn:parseFloat($('#pcn').value)||0,cat:$('#pcat').value,stock:st===''?'':+st});push();pclr();rProd();toast(t('saved'))};
 
 /* records */
-function from(){const n=new Date(),s=new Date(n.getFullYear(),n.getMonth(),n.getDate());if(per==='w')s.setDate(s.getDate()-6);if(per==='m')s.setDate(1);return per==='a'?0:+s}
+function from(){const n=new Date(),s=new Date(n.getFullYear(),n.getMonth(),n.getDate());if(per==='w')s.setDate(s.getDate()-6);if(per==='m')s.setDate(1);if(per==='p'){s.setDate(1);s.setMonth(s.getMonth()-1)}return per==='a'?0:+s}
+const to=()=>{if(per!=='p')return Infinity;const n=new Date();return +new Date(n.getFullYear(),n.getMonth(),1)};
 function rSales(){document.querySelectorAll('#per button').forEach(b=>b.classList.toggle('on',b.dataset.k===per));
- const l=db.sales.filter(s=>+new Date(s.t)>=from()),rev=l.reduce((a,s)=>a+s.total,0),cs=l.reduce((a,s)=>a+(s.cost||0),0),ex=(db.exp||[]).filter(e=>+new Date(e.t)>=from()).reduce((a,e)=>a+e.amt,0);
+ const l=db.sales.filter(s=>+new Date(s.t)>=from()&&+new Date(s.t)<to()),rev=l.reduce((a,s)=>a+s.total,0),cs=l.reduce((a,s)=>a+(s.cost||0),0),ex=(db.exp||[]).filter(e=>+new Date(e.t)>=from()&&+new Date(e.t)<to()).reduce((a,e)=>a+e.amt,0);
  $('#stats').innerHTML=[['rev',money(rev)],['cst',money(cs)],['profit',money(rev-cs)],['exp',money(ex)],['net',money(rev-cs-ex)],['cnt',l.length]].map(([k,v])=>`<div class="tile"><small>${t(k)}</small><b${k==='profit'?' style="color:var(--ac)"':''}>${v}</b></div>`).join('');
- $('#since').textContent=t('since')+': '+new Date(db.since).toLocaleDateString();
- const d={};l.forEach(s=>{const k=new Date(s.t).toLocaleDateString(),o=d[k]||(d[k]={n:0,r:0,p:0});o.n++;o.r+=s.total;o.p+=s.total-(s.cost||0)});
- $('#dlist').innerHTML=Object.entries(d).reverse().map(([k,o])=>`<div class="ln" style="grid-template-columns:1fr auto auto"><div>${k}<small>${o.n} ${t('cnt')}</small></div><div class="lt">${money(o.r)}</div><div class="lt" style="color:var(--ac)">${money(o.p)}</div></div>`).join('')||'<p class="mu">—</p>';
+ bkStat();$('#since').textContent=t('since')+': '+new Date(db.since).toLocaleDateString();
+ const gk=iso=>{const x=new Date(iso);if(gb==='m')return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0');if(gb==='w')return new Date(x.getFullYear(),x.getMonth(),x.getDate()-((x.getDay()+6)%7)).toLocaleDateString();return x.toLocaleDateString()};
+ const d={};l.forEach(s=>{const k=gk(s.t),o=d[k]||(d[k]={n:0,r:0,c:0,p:0});o.n++;o.r+=s.total;o.c+=s.cost||0;o.p+=s.total-(s.cost||0)});
+ document.querySelectorAll('#gb button').forEach(b=>b.classList.toggle('on',b.dataset.k===gb));
+ $('#dlist').innerHTML=Object.entries(d).reverse().map(([k,o])=>`<div class="ln" style="grid-template-columns:1fr auto auto"><div>${k}<small>${o.n} ${t('cnt')} · ${t('cst')} ${money(o.c)}</small></div><div class="lt">${money(o.r)}</div><div class="lt" style="color:var(--ac)">${money(o.p)}</div></div>`).join('')||'<p class="mu">—</p>';
  $('#slist').innerHTML=l.slice(-40).reverse().map(s=>`<div class="ln" style="grid-template-columns:1fr auto auto"><div>${new Date(s.t).toLocaleString()}<small>${s.items.length} · ${t('profit')} ${money(s.total-(s.cost||0))}</small></div><div class="lt">${money(s.total)}</div><button data-id="${s.id}">${t('view')}</button></div>`).join('')||'<p class="mu">—</p>'}
 $('#per').onclick=e=>{const b=e.target.closest('button');if(b){per=b.dataset.k;rSales()}};
 $('#slist').onclick=e=>{const b=e.target.closest('button');if(b)receipt(db.sales.find(s=>s.id==b.dataset.id),true)};
@@ -276,7 +296,7 @@ $('#bbak').onclick=()=>saveFile('cashier-backup-'+day()+'.json',JSON.stringify(d
 $('#bres').onclick=()=>{modal(`<p>${t('paste')}</p><input type="file" id="rf" accept=".json" style="margin-bottom:8px"><textarea id="ta" rows="6"></textarea><div class="row" style="margin:10px 0 0"><button class="pri" id="dores">${t('res')}</button><button onclick="closeM()">${t('cancel')}</button></div>`);
  $('#rf').onchange=e=>{const f=e.target.files[0];if(f)f.text().then(x=>$('#ta').value=x)};
  $('#dores').onclick=()=>{try{const d=JSON.parse($('#ta').value);if(!Array.isArray(d.products))throw 0;db=Object.assign(blank(),d);push();closeM();refresh();toast(t('saved'))}catch(e){toast(t('inv'))}}};
-function undoStock(s){s.items.forEach(i=>{const p=db.products.find(y=>y.id===i.id)||db.products.find(y=>y.name===i.n);if(p&&p.stock!==''&&p.stock!=null)p.stock=+(p.stock+i.q).toFixed(3)})}
+function undoStock(s){s.items.forEach(i=>{const p=db.products.find(y=>y.id===i.id)||(i.id==null&&db.products.find(y=>y.name===i.n));if(p&&p.stock!==''&&p.stock!=null)p.stock=+(p.stock+i.q).toFixed(3)})}
 function delSale(id){const s=db.sales.find(x=>x.id===id);if(!s)return;undoStock(s);db.sales=db.sales.filter(x=>x.id!==id);db.debts=(db.debts||[]).filter(d=>d.id!==id);(db.del=db.del||[]).push(id);push();if(cdb)cdb.collection('sales').doc(String(id)).delete().catch(()=>{});refresh()}
 $('#wipe').onclick=function(){if(!this.dataset.s){this.dataset.s=1;this.textContent=t('sure');return}
  const ids=db.sales.map(x=>x.id);db.sales.forEach(undoStock);db.del=(db.del||[]).concat(ids);db.debts=(db.debts||[]).filter(d=>!ids.includes(d.id));db.sales=[];db.since=new Date().toISOString();push();
@@ -317,9 +337,10 @@ $('#eadd').onclick=()=>{const a=parseFloat($('#ea').value);if(!(a>0))return toas
 $('#el').onclick=e=>{const b=e.target.closest('button');if(!b)return;if(b.dataset.sure){db.exp=db.exp.filter(x=>x.id!=b.dataset.id);push();rCash()}else{b.dataset.sure=1;b.textContent=t('sure')}};
 
 /* ---- restock ---- */
-function restock(p){modal(`<h3 style="margin:0">${esc(p.name)}</h3><small>${t('stock')}: ${p.stock===''||p.stock==null?'—':n2(p.stock)} · ${t('cost')}: ${n2(p.cost)}</small><label style="display:block;margin-top:10px"><small>${t('qtyin')}${p.w?' ('+t('kg')+')':''}</small><input id="rq" type="number" inputmode="decimal" min="0"></label><label style="display:block;margin-top:8px"><small>${t('newcost')}${p.w?' / '+t('kg'):''}</small><input id="rc" type="number" inputmode="decimal" min="0" value="${p.cost||''}"></label><label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="ra" checked><span>${t('avg')}</span></label><div class="row" style="margin:12px 0 0"><button class="pri" id="rok">${t('go')}</button><button onclick="closeM()">${t('cancel')}</button></div>`);
- $('#rok').onclick=()=>{const q=parseFloat($('#rq').value),c=parseFloat($('#rc').value);if(!(q>0)||isNaN(c))return toast(t('np2'));
-  const old=p.stock===''||p.stock==null?0:+p.stock;p.cost=$('#ra').checked&&old>0?+((old*(p.cost||0)+q*c)/(old+q)).toFixed(2):c;p.stock=+(old+q).toFixed(3);push();closeM();rProd();toast(t('saved'))}}
+function restock(p){const ct=p.cn>1&&!p.w;
+ modal(`<h3 style="margin:0">${esc(p.name)}</h3><small>${t('stock')}: ${p.stock===''||p.stock==null?'—':n2(p.stock)} · ${t('cost')}: ${n2(p.cost)}${ct?' · '+p.cn+'/'+t('ctn'):''}</small><label style="display:block;margin-top:10px"><small>${ct?t('ctnin'):t('qtyin')+(p.w?' ('+t('kg')+')':'')}</small><input id="rq" type="number" inputmode="decimal" min="0"></label><label style="display:block;margin-top:8px"><small>${ct?t('ctncost'):t('newcost')+(p.w?' / '+t('kg'):'')}</small><input id="rc" type="number" inputmode="decimal" min="0" value="${ct?(p.cost?p.cost*p.cn:''):(p.cost||'')}"></label><label style="display:flex;gap:8px;align-items:center;margin-top:10px"><input type="checkbox" id="ra" checked><span>${t('avg')}</span></label><div class="row" style="margin:12px 0 0"><button class="pri" id="rok">${t('go')}</button><button onclick="closeM()">${t('cancel')}</button></div>`);
+ $('#rok').onclick=()=>{let q=parseFloat($('#rq').value),c=parseFloat($('#rc').value);if(!(q>0)||isNaN(c))return toast(t('np2'));if(ct){q*=p.cn;c=c/p.cn}
+  const old=p.stock===''||p.stock==null?0:+p.stock;p.cost=$('#ra').checked&&old>0?+((old*(p.cost||0)+q*c)/(old+q)).toFixed(2):+c.toFixed(2);p.stock=+(old+q).toFixed(3);push();closeM();rProd();toast(t('saved'))}}
 
 /* ---- barcode labels ---- */
 function ean(){let d;do{d='2'+String(Math.floor(Math.random()*1e11)).padStart(11,'0')}while(db.products.some(p=>p.code===d));let x=0;for(let i=0;i<12;i++)x+=+d[i]*(i%2?3:1);return d+((10-x%10)%10)}
@@ -335,6 +356,94 @@ $('#lbl').onclick=()=>{if(!db.products.length)return toast(t('nop'));
 /* ---- PIN ---- */
 $('#set-pin').onchange=e=>{ls('cashier-pin',e.target.value.trim());toast(t('pinset'))};
 
+/* ---- categories ---- */
+function fillCats(){const v=$('#pcat').value;$('#pcat').innerHTML='<option value="">—</option>'+cats().map(c=>`<option value="${esc(c)}">${esc(catName(c))}</option>`).join('');$('#pcat').value=v}
+$('#chips').onclick=e=>{const b=e.target.closest('button');if(b){selCat=b.dataset.c;rList()}};
+$('#acat').onclick=()=>{modal(`<p>${t('catn')}</p><input id="cnm"><div class="row" style="margin:12px 0 0"><button class="pri" id="cok2">${t('go')}</button><button onclick="closeM()">${t('cancel')}</button></div>`);
+ $('#cok2').onclick=()=>{const n=$('#cnm').value.trim();if(!n)return;if(!cats().includes(n))cats().push(n);push();closeM();fillCats();$('#pcat').value=n}};
+$('#gb').onclick=e=>{const b=e.target.closest('button');if(b){gb=b.dataset.k;rSales()}};
+
+/* ---- scanning: camera, NFC, name lookup, forwarding ---- */
+async function lookup(code){try{const c=new AbortController();setTimeout(()=>c.abort(),5000);
+ const r=await fetch('https://world.openfoodfacts.org/api/v2/product/'+encodeURIComponent(code)+'.json?fields=product_name,brands,quantity',{signal:c.signal});const j=await r.json();
+ if(j.status!==1||!j.product)return null;const q=j.product;return [q.brands&&q.brands.split(',')[0],q.product_name,q.quantity].filter(Boolean).join(' ')||null}catch(e){return null}}
+function fillCode(c){$('#pc').value=c;$('#pn').focus();if(!$('#pn').value)lookup(c).then(n=>{if(n&&!$('#pn').value){$('#pn').value=n;toast(t('found'))}})}
+function gotCode(code){if(ls('cashier-fwd')==='1'&&conn&&conn.open){peerSend({k:'scan',code});toast(code);return}
+ const p=db.products.find(x=>x.code===code);if(p)pick(p);else unknown(code)}
+async function nfcScan(cb,once){if(!('NDEFReader' in window))return toast(t('nonfc'));
+ try{if(nfcAbort)nfcAbort.abort();nfcAbort=new AbortController();const r=new NDEFReader();await r.scan({signal:nfcAbort.signal});toast(t('nfcon'));
+  r.onreading=e=>{let code=e.serialNumber||'';for(const rec of e.message.records){if(rec.recordType==='text'){try{code=new TextDecoder(rec.encoding||'utf-8').decode(rec.data);break}catch(_){}}}
+   if(!code)return;const n=Date.now();if(code===last&&n-lastT<1500)return;last=code;lastT=n;beep();cb(code);if(once)nfcAbort.abort()}}catch(e){toast(t('nfcfail'))}}
+$('#nfcBtn').onclick=()=>nfcScan(gotCode);
+$('#pnfc').onclick=()=>nfcScan(c=>{$('#pc').value=c;$('#pn').focus()},true);
+$('#itm').onclick=()=>{modal(`<h3 style="margin:0">${t('itemt')}</h3><label style="display:block;margin-top:8px"><small>${t('iname')}</small><input id="in1"></label><div class="f" style="margin-top:8px"><label><small>${t('price')}</small><input id="in2" type="number" inputmode="decimal" min="0"></label><label><small>${t('qty')}</small><input id="in3" type="number" inputmode="decimal" min="0" value="1"></label><label class="w"><small>${t('cost')}</small><input id="in4" type="number" inputmode="decimal" min="0"></label></div><div class="row" style="margin:12px 0 0"><button class="pri" id="inok">${t('go')}</button><button onclick="closeM()">${t('cancel')}</button></div>`);
+ $('#inok').onclick=()=>{const pr=parseFloat($('#in2').value),q=parseFloat($('#in3').value)||1;if(isNaN(pr)||pr<0)return toast(t('np2'));
+  cart.push({id:'x'+Date.now(),n:$('#in1').value.trim()||t('item1'),p:pr,c:parseFloat($('#in4').value)||0,w:false,q});closeM();rCart()}};
+
+/* ---- link devices (live sync + remote scanner) ---- */
+function lg(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+function startPeer(){if(!pairCode||typeof Peer==='undefined'||peer)return;
+ try{peer=new Peer('shop-'+pairCode+'-'+role);
+  peer.on('open',()=>{if(role===2)dial()});
+  peer.on('connection',c=>setConn(c));
+  peer.on('disconnected',()=>{try{peer.reconnect()}catch(_){}});
+  peer.on('error',e=>{if(e.type==='peer-unavailable')return;try{peer.destroy()}catch(_){}peer=null;setTimeout(startPeer,9000)})}catch(e){peer=null}}
+function dial(){if(!peer||!peer.open||(conn&&conn.open))return;setConn(peer.connect('shop-'+pairCode+'-1',{reliable:true}))}
+function setConn(c){conn=c;c.on('open',()=>{chip();peerSend({k:'full',db:lite(),sales:db.sales})});c.on('data',onPeer);c.on('close',()=>chip());c.on('error',()=>{})}
+setInterval(()=>{if(role===2&&pairCode)dial()},7000);
+function stopPeer(){try{if(conn)conn.close();if(peer)peer.destroy()}catch(e){}conn=peer=null;chip()}
+function addSale(x){if((db.del||[]).includes(x.id)||db.sales.some(y=>y.id===x.id))return;db.sales.push(x);db.sales.sort((a,b)=>a.id-b.id);saveL();refresh()}
+function onPeer(m){try{
+ if(m.k==='scan')return onRemoteScan(m.code);
+ if(m.k==='sale')return addSale(m.s);
+ const d=m.db;if(!d)return;if(m.sales)m.sales.forEach(addSale);
+ if((d.u||0)>(db.u||0)){db.products=d.products||[];db.store=d.store||db.store;db.cur=d.cur||db.cur;db.since=d.since||db.since;if(d.debts)db.debts=d.debts;if(d.exp)db.exp=d.exp;if(d.closes)db.closes=d.closes;if(d.cats)db.cats=d.cats;db.u=d.u}
+ db.del=[...new Set([...(db.del||[]),...(d.del||[])])];db.sales=db.sales.filter(x=>!db.del.includes(x.id));saveL();refresh();
+ if(m.k==='full'&&(db.u||0)>(d.u||0))peerSend({k:'meta',db:lite()})}catch(e){}}
+function onRemoteScan(code){const p=db.products.find(x=>x.code===code),e=$('#pcard');beep();
+ e.innerHTML=p?`<div>${esc(p.name)}</div><div class="big">${unitTxt(p)}</div><small style="color:inherit">${stTxt(p).slice(3)}</small>`:`<b>${esc(code)}</b><div>${t('unk')}</div>`;
+ e.hidden=false;clearTimeout(onRemoteScan.t);onRemoteScan.t=setTimeout(()=>e.hidden=true,8000);
+ if(p&&ls('cashier-radd')!=='0'&&cur==='sell')pick(p)}
+function linkUI(){const on=conn&&conn.open;
+ modal(`<h3 style="margin:0">${t('linkt')}</h3>${typeof Peer==='undefined'?`<p class="mu">${t('linkna')}</p>`:''}<p>${on?'● '+t('linked'):pairCode?'○ '+t('waitp'):''}</p>
+ ${pairCode?`<div class="big" style="direction:ltr;text-align:center;letter-spacing:4px">${pairCode}</div><label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="lf"${ls('cashier-fwd')==='1'?' checked':''}><span>${t('fwd')}</span></label><label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="la"${ls('cashier-radd')!=='0'?' checked':''}><span>${t('radd')}</span></label><button class="x" id="lun">${t('unlink')}</button>`
+ :`<button class="pri" id="lmk" style="width:100%;margin:8px 0">${t('mk')}</button><input id="ljc" placeholder="ABC123" style="direction:ltr;text-transform:uppercase" maxlength="8"><button id="ljn" style="width:100%;margin-top:8px">${t('jn')}</button>`}
+ <div class="row" style="margin:12px 0 0"><button onclick="closeM()">${t('close')}</button></div>`);
+ if(pairCode){$('#lf').onchange=e=>ls('cashier-fwd',e.target.checked?'1':'0');$('#la').onchange=e=>ls('cashier-radd',e.target.checked?'1':'0');$('#lun').onclick=()=>{stopPeer();pairCode='';ls('cashier-pair','');linkUI()}}
+ else{$('#lmk').onclick=()=>{pairCode=lg();role=1;ls('cashier-pair',pairCode);ls('cashier-role','1');startPeer();linkUI()};
+  $('#ljn').onclick=()=>{const c=$('#ljc').value.trim().toUpperCase();if(c.length<4)return;pairCode=c;role=2;ls('cashier-pair',c);ls('cashier-role','2');startPeer();linkUI()}}}
+$('#linkBtn').onclick=linkUI;
+
+/* ---- automatic backups ---- */
+const idb=()=>new Promise((res,rej)=>{const r=indexedDB.open('cashier-bk',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)});
+const idbGet=async k=>{const d=await idb();return new Promise(r=>{const q=d.transaction('k').objectStore('k').get(k);q.onsuccess=()=>r(q.result);q.onerror=()=>r()})};
+const idbSet=async(k,v)=>{const d=await idb();return new Promise(r=>{const x=d.transaction('k','readwrite');x.objectStore('k').put(v,k);x.oncomplete=()=>r()})};
+async function snap(force){try{const sn=(await idbGet('snaps'))||[],j=JSON.stringify(db),l=sn[sn.length-1];
+ if(!force&&l&&l.u===db.u&&l.n===db.sales.length)return;
+ sn.push({t:Date.now(),u:db.u,n:db.sales.length,data:j});while(sn.length>30)sn.shift();await idbSet('snaps',sn);bkLast=Date.now();
+ if(bkFolder){try{if(await bkFolder.queryPermission({mode:'readwrite'})==='granted'){for(const n of ['cashier-latest.json','cashier-'+day()+'.json']){const f=await bkFolder.getFileHandle(n,{create:true}),w=await f.createWritable();await w.write(j);await w.close()}}}catch(e){}}
+ bkStat()}catch(e){}}
+function bkStat(){const e=$('#bkst');if(e)e.textContent=(bkLast?t('bklast')+': '+new Date(bkLast).toLocaleTimeString():'')+(bkFolder?' · '+t('bkfold'):'')}
+async function sendBackup(){const j=JSON.stringify(db),f=new File([j],'cashier-backup-'+day()+'.json',{type:'application/json'});
+ try{if(navigator.canShare&&navigator.canShare({files:[f]})){await navigator.share({files:[f],title:'Cashier backup'});return}}catch(e){if(e&&e.name==='AbortError')return}
+ saveFile(f.name,j)}
+$('#bkn').onclick=async()=>{await snap(true);toast(t('saved'))};
+$('#bks').onclick=sendBackup;
+$('#bkf').onclick=async()=>{if(!window.showDirectoryPicker)return toast(t('bkna'));
+ try{if(bkFolder&&await bkFolder.queryPermission({mode:'readwrite'})!=='granted'&&await bkFolder.requestPermission({mode:'readwrite'})==='granted'){snap(true);return}
+  bkFolder=await showDirectoryPicker({mode:'readwrite'});await idbSet('dir',bkFolder);snap(true)}catch(e){}};
+$('#bkr').onclick=async()=>{const sn=(await idbGet('snaps'))||[];
+ modal(`<div style="max-height:55vh;overflow:auto">${sn.slice().reverse().map((x,i)=>`<div class="ln" style="grid-template-columns:1fr auto"><div>${new Date(x.t).toLocaleString()}<small>${x.n} ${t('cnt')}</small></div><button data-n="${sn.length-1-i}">${t('res')}</button></div>`).join('')||'<p class="mu">—</p>'}</div><button onclick="closeM()" style="margin-top:10px">${t('close')}</button>`);
+ $('#mb').onclick=e=>{const b=e.target.closest('button[data-n]');if(!b)return;try{db=Object.assign(blank(),JSON.parse(sn[+b.dataset.n].data));push();closeM();refresh();toast(t('saved'))}catch(_){toast(t('inv'))}}};
+try{idbGet('dir').then(h=>{bkFolder=h||null}).catch(()=>{});setInterval(()=>snap(false),300000);setTimeout(()=>snap(false),4000);
+ document.addEventListener('visibilitychange',()=>{if(document.hidden)snap(false)})}catch(e){}
+
+/* ---- install as app (PWA) ---- */
+addEventListener('beforeinstallprompt',e=>{e.preventDefault();ip=e;$('#inst').hidden=false});
+$('#inst').onclick=async()=>{if(ip){ip.prompt();ip=null;$('#inst').hidden=true}};
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol)&&!window.claude)navigator.serviceWorker.register('sw.js').catch(()=>{});
+setTimeout(startPeer,500);
+
 $('#set-store').onchange=e=>{db.store=e.target.value.trim()||'My Shop';push();refresh()};
 $('#set-cur').onchange=e=>{db.cur=e.target.value.trim()||'IQD';push();refresh()};
 
@@ -342,7 +451,7 @@ $('#set-cur').onchange=e=>{db.cur=e.target.value.trim()||'IQD';push();refresh()}
 async function initSync(){try{if(!window.claude)return;cdb=await claude.use('db');if(!cdb)return;let first=true;
  cdb.doc('shop/main').onSnapshot(s=>{const d=s.exists?s.data():null;
   if(!d){if(db.products.length||db.sales.length)push()}
-  else if((d.u||0)>(db.u||0)){db.products=d.products||[];db.store=d.store||db.store;db.cur=d.cur||db.cur;db.since=d.since||db.since;if(d.debts)db.debts=d.debts;if(d.exp)db.exp=d.exp;if(d.closes)db.closes=d.closes;db.del=[...new Set([...(db.del||[]),...(d.del||[])])];db.sales=db.sales.filter(x=>!db.del.includes(x.id));db.u=d.u;saveL();refresh()}
+  else if((d.u||0)>(db.u||0)){db.products=d.products||[];db.store=d.store||db.store;db.cur=d.cur||db.cur;db.since=d.since||db.since;if(d.debts)db.debts=d.debts;if(d.exp)db.exp=d.exp;if(d.closes)db.closes=d.closes;if(d.cats)db.cats=d.cats;db.del=[...new Set([...(db.del||[]),...(d.del||[])])];db.sales=db.sales.filter(x=>!db.del.includes(x.id));db.u=d.u;saveL();refresh()}
   else if(first&&(d.u||0)<(db.u||0))push();
   first=false;chip(true)},()=>chip(false));
  cdb.collection('sales').onSnapshot(s=>{const have=new Set(db.sales.map(x=>x.id)),rem=new Set();let ch=false;
